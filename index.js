@@ -240,7 +240,7 @@ bot.on('message', msg => {
     
   case COMMANDS.create_rule:
     if(Object.keys(entities).length === 0) {
-      bot.sendMessage(chatId, 'Сначала создайте элементы', {
+      bot.sendMessage(chatId, 'Сначала создайте сущности', {
         reply_markup:{
           remove_keyboard: true
         }
@@ -259,7 +259,7 @@ bot.on('message', msg => {
 
     if(Object.values(entities).length === 0) {
       usersState[chatId] = STATES.CREATED;
-      bot.sendMessage(chatId, 'Созданных элементов нет', {
+      bot.sendMessage(chatId, 'Созданных сущностей нет', {
         reply_markup:{
           remove_keyboard: true
         }
@@ -268,7 +268,7 @@ bot.on('message', msg => {
     }
 
     usersState[chatId] = STATES.STATE_DELETE_ENTITY;
-    bot.sendMessage(chatId, 'Выберите название элемента, который нужно удалить', {
+    bot.sendMessage(chatId, 'Выберите название сущности, которую нужно удалить', {
       reply_markup:{
         keyboard: Object.keys(entities).map((el) => [el])
       }
