@@ -35,19 +35,6 @@ const usersCurrentNumberOfQuestion = {};
 const usersAnswers = {};
 let rule = '';
 
-entities.Age = {
-  name: 'Age',
-  message: 'How old are you?',
-  type: ENTITIES_TYPE.NUMERIC
-};
-
-entities.Car = {
-  name: 'Car',
-  message: 'Do you have a car?',
-  type: ENTITIES_TYPE.BOOLEAN
-};
-
-
 ///////////////////////////////////////////////////////////////////////
 
 bot.on('message', msg => {
@@ -190,6 +177,7 @@ bot.on('message', msg => {
         });
       }
     }
+    return;
   }
   
   switch(msg.text) {
