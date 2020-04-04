@@ -190,6 +190,7 @@ bot.on('message', msg => {
         });
       }
     }
+    return;
   }
   
   switch(msg.text) {
