@@ -112,15 +112,23 @@ bot.on('message', msg => {
 
     if(entitiesKeys.length === usersCurrentNumberOfQuestion[chatId]) {
       normilizeAnswers(usersAnswers[chatId]);
-      const result = checkAnswers(usersAnswers[chatId]);
-      const message = result === true ? 'Одобрено!' : 'Не одобрено!';
-      bot.sendMessage(chatId, 'Спасибо за Ваши ответы!\n' + message, {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
-      
-      
+      try {
+        const result = checkAnswers(usersAnswers[chatId]);
+        const message = result === true ? 'Одобрено!' : 'Не одобрено!';
+        bot.sendMessage(chatId, 'Спасибо за Ваши ответы!\n' + message, {
+          reply_markup:{
+            remove_keyboard: true
+          }
+        });
+      } catch(error) {
+        rule = '';
+        bot.sendMessage(chatId, 'Правило введено с ошибкой и удалено', {
+          reply_markup:{
+            remove_keyboard: true
+          }
+        });
+      }
+       
       usersState[chatId] = STATES.FINISH_ANSWERING_QUESTIONS;
       usersCurrentNumberOfQuestion[chatId] = 0;
       usersAnswers[chatId] = {};
