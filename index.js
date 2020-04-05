@@ -1,6 +1,6 @@
-const TelegramBot = require('node-telegram-bot-api');
+const CreditBot = require('./CreditBot');
 const token = process.env.TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const bot = new CreditBot(token);
 
 const COMMANDS = {
   create_entity: '/create_entity',
@@ -37,27 +37,23 @@ let rule = '';
 
 ///////////////////////////////////////////////////////////////////////
 
-bot.on('message', msg => {
+bot.registerMessageHandler(msg => {
   const chatId = msg.from.id;
     
   switch(usersState[chatId]) {
 
   case STATES.STATE_CREATE_ENTITY_NAME:
-
     const entityName = msg.text;
     entities[entityName] = {
       name: entityName,
       message: '',
       type: null
     };
+
     usersState[chatId] = STATES.STATE_CREATE_ENTITY_QUESTION;
     usersCurrentEntity[chatId] = entityName;
 
-    bot.sendMessage(chatId, 'Напишите вопрос для этой сущности, который будет показан пользователю при прохождении опроса', {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+    bot.sendMessage(chatId, 'Напишите вопрос для этой сущности, который будет показан пользователю при прохождении опроса');
     return;
 
   case STATES.STATE_CREATE_ENTITY_QUESTION:
@@ -65,25 +61,13 @@ bot.on('message', msg => {
     entities[usersCurrentEntity[chatId]].message = msg.text;
     usersState[chatId] = STATES.STATE_CREATE_ENTITY_TYPE;
 
-    bot.sendMessage(chatId, 'Напишите тип сущности', {
-      reply_markup:{
-        keyboard: [
-          [ENTITIES_TYPE.NUMERIC],
-          [ENTITIES_TYPE.BOOLEAN],
-        ]
-      }
-    });
+    bot.sendMessage(chatId, 'Напишите тип сущности', [[ENTITIES_TYPE.NUMERIC], [ENTITIES_TYPE.BOOLEAN]]);
     return;
 
   case STATES.STATE_CREATE_ENTITY_TYPE:
-
     entities[usersCurrentEntity[chatId]].type = msg.text;
     usersState[chatId] = STATES.CREATED;
-    bot.sendMessage(chatId, 'Сущность создана', {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+    bot.sendMessage(chatId, 'Сущность создана');
     return;
 
   case STATES.STATE_DELETE_ENTITY:
@@ -94,20 +78,14 @@ bot.on('message', msg => {
       rule = '';
       messageToSend+= '. \nУдаленная сущность использовалась в правиле и правило было удалено. Создайте правило заново';
     }
-    bot.sendMessage(chatId, messageToSend, {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+
+    bot.sendMessage(chatId, messageToSend);
     return;
 
   case STATES.ANSWERING_QUESTIONS:
-
     const entitiesKeys = Object.keys(entities);
     const currentKey = entitiesKeys[usersCurrentNumberOfQuestion[chatId]];
     usersAnswers[chatId][currentKey] = msg.text;
-
-
     usersCurrentNumberOfQuestion[chatId]++;
 
     if(entitiesKeys.length === usersCurrentNumberOfQuestion[chatId]) {
@@ -115,47 +93,23 @@ bot.on('message', msg => {
       try {
         const result = checkAnswers(usersAnswers[chatId]);
         const message = result === true ? 'Одобрено!' : 'Не одобрено!';
-        bot.sendMessage(chatId, 'Спасибо за Ваши ответы!\n' + message, {
-          reply_markup:{
-            remove_keyboard: true
-          }
-        });
+        bot.sendMessage(chatId, 'Спасибо за Ваши ответы!\n' + message);
       } catch(error) {
         rule = '';
-        bot.sendMessage(chatId, 'Правило введено с ошибкой и удалено', {
-          reply_markup:{
-            remove_keyboard: true
-          }
-        });
+        bot.sendMessage(chatId, 'Правило введено с ошибкой и удалено');
       }
-       
+
       usersState[chatId] = STATES.FINISH_ANSWERING_QUESTIONS;
       usersCurrentNumberOfQuestion[chatId] = 0;
       usersAnswers[chatId] = {};
       return;
     }
 
-  
     const nextKey = entitiesKeys[usersCurrentNumberOfQuestion[chatId]];
     const question = entities[nextKey].message;
     const entityType = entities[nextKey].type;
-    
-    if(entityType === ENTITIES_TYPE.BOOLEAN) {
-      bot.sendMessage(chatId, question, {
-        reply_markup:{
-          keyboard: [
-            ['True'],
-            ['False']
-          ]
-        }
-      });
-    } else {
-      bot.sendMessage(chatId, question, {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
-    }
+    const keyboard = entityType === ENTITIES_TYPE.BOOLEAN ? [['True'], ['False']] : null;
+    bot.sendMessage(chatId, question, keyboard);
     return;
 
   case STATES.WRITING_RULE:
@@ -163,132 +117,72 @@ bot.on('message', msg => {
     try {
       eval(`with(entities) { ${rule.replace(/&&/g, '&').replace(/\|\|/g, '&')} }`);
       usersState[chatId] = STATES.CREATED;
-      bot.sendMessage(chatId, 'Правило успешно записано', {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
+      bot.sendMessage(chatId, 'Правило успешно записано');
     } catch (error) {
       rule = '';
       if (error instanceof SyntaxError) {
-        bot.sendMessage(chatId, 'Правило задано с ошибкой, попробуйте еще раз: неправильный синтаксис', {
-          reply_markup:{
-            remove_keyboard: true
-          }
-        });
+        bot.sendMessage(chatId, 'Правило задано с ошибкой, попробуйте еще раз: неправильный синтаксис');
       } else if (error instanceof ReferenceError) {
         const key = error.message.split(' ')[0];
-        bot.sendMessage(chatId, `Правило задано с ошибкой, попробуйте еще раз: сущность с ${key} не найдена`, {
-          reply_markup:{
-            remove_keyboard: true
-          }
-        });
+        bot.sendMessage(chatId, `Правило задано с ошибкой, попробуйте еще раз: сущность с ${key} не найдена`);
       }
     }
     return;
   }
-  
+
   switch(msg.text) {
   case COMMANDS.create_entity: 
     usersState[chatId] = STATES.STATE_CREATE_ENTITY_NAME;
-    bot.sendMessage(chatId, 'Напишите название сущности', {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+    bot.sendMessage(chatId, 'Напишите название сущности');
     return;
 
   case COMMANDS.list_entities: 
     const message = createListOfEntities(entities).length > 0 ? createListOfEntities(entities) : 'Сущности еще не созданы';
-    bot.sendMessage(chatId, message, {
-      reply_markup:{
-        remove_keyboard: true
-      },
-      parse_mode: 'HTML'
-    });
+    bot.sendMessage(chatId, message, null, {parse_mode: 'HTML'});
     return;
 
   case COMMANDS.take_survey:
     if(rule.length === 0) {
-      bot.sendMessage(chatId, 'Сначала создайте правило для одобрения кредита', {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
+      bot.sendMessage(chatId, 'Сначала создайте правило для одобрения кредита');
       return;
     }
+
     usersState[chatId] = STATES.ANSWERING_QUESTIONS;
     usersCurrentNumberOfQuestion[chatId] = 0;
 
-    ///////////////////////////////////////////////////
-
     const entitiesKeys = Object.keys(entities);
-
     const currentKey = entitiesKeys[usersCurrentNumberOfQuestion[chatId]];
     const question = entities[currentKey].message;
-    const entityType = entities[currentKey].type;
-    const messageOptions = {};
+    const keyboard = entities[currentKey].type === ENTITIES_TYPE.BOOLEAN ?
+      [['True'], ['False']] : null;
 
     usersAnswers[chatId] = {};
-    if(entityType === ENTITIES_TYPE.BOOLEAN) {
-      messageOptions.reply_markup = {
-        keyboard: [
-          ['True'],
-          ['False']
-        ]
-      };          
-    } else {
-      messageOptions.reply_markup = {
-        remove_keyboard: true
-      }; 
-    }
-    bot.sendMessage(chatId, question, messageOptions);
+    bot.sendMessage(chatId, question, keyboard);
     return;
 
-    
   case COMMANDS.create_rule:
     if(Object.keys(entities).length === 0) {
-      bot.sendMessage(chatId, 'Сначала создайте сущности', {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
+      bot.sendMessage(chatId, 'Сначала создайте сущности');
       return;
     }
     usersState[chatId] = STATES.WRITING_RULE;
-    bot.sendMessage(chatId, 'Запишите правило', {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+    bot.sendMessage(chatId, 'Запишите правило');
     return;
 
   case COMMANDS.delete_entity:
-
     if(Object.values(entities).length === 0) {
       usersState[chatId] = STATES.CREATED;
-      bot.sendMessage(chatId, 'Созданных сущностей нет', {
-        reply_markup:{
-          remove_keyboard: true
-        }
-      });
+      bot.sendMessage(chatId, 'Созданных сущностей нет');
       return;
     }
 
     usersState[chatId] = STATES.STATE_DELETE_ENTITY;
-    bot.sendMessage(chatId, 'Выберите название сущности, которую нужно удалить', {
-      reply_markup:{
-        keyboard: Object.keys(entities).map((el) => [el])
-      }
-    });
+    bot.sendMessage(chatId, 'Выберите название сущности, которую нужно удалить',
+      Object.keys(entities).map((el) => [el]));
     return;
 
   case COMMANDS.start:
-    bot.sendMessage(chatId, `Привет, ${msg.from.first_name}! Напиши команду /help для более детальной информации`, {
-      reply_markup:{
-        remove_keyboard: true
-      }
-    });
+    bot.sendMessage(chatId, `Привет, ${msg.from.first_name}! Напиши команду /help для более детальной информации`);
     return;
 
   case COMMANDS.help:
@@ -297,18 +191,13 @@ bot.on('message', msg => {
     <b>delete_entity</b> - удалить параметр по имени.
     <b>list_entities</b> - вывести список параметров и их вопросов.
     <b>create_rule</b> - создать правило, которое будет учитывать ответы на все вопросы, и по ним определять решение о выдаче кредита. Правило - это булевая функция, в которой можно использовать имена созданных параметров, арифметические операции +-/*; логические операции: && (и), || (или), >, &lt;, >=, &lt;=, "ИмяПараметра" == true/false. Пример правила: "Машина == true && Зарплата > 25000 || (Дети > 1 && Жены == 2)".
-    <b>take_survey</b> - пройти опрос. Будут заданы все вопросы, на которые надо будет ответить. После этого будет применено правило и вынесен вердикт.`, {
-      reply_markup:{
-        remove_keyboard: true
-      },
-      parse_mode: 'HTML'
-    });
+    <b>take_survey</b> - пройти опрос. Будут заданы все вопросы, на которые надо будет ответить. После этого будет применено правило и вынесен вердикт.`,
+      null, {parse_mode: 'HTML'});
     return;
   }
-
 });
 
-bot.on("polling_error", (err) => console.log(err));
+bot.registerErrorHandler((err) => console.error(err));
 
 function createListOfEntities(entities) {
   let message = '';
