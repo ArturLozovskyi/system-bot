@@ -42,11 +42,44 @@ const ENTITIES_TYPE = {
 
 const adminList = {};
 const usersState = {};
-const entities = {};
+const entities = {
+  "СемейноеПоложение" : {
+    name: "СемейноеПоложение",
+    message: "Вы состоите в браке?",
+    type: ENTITIES_TYPE.BOOLEAN
+  },
+  "Доход" : {
+    name: "Доход",
+    message: "Каков Ваш официальный доход?",
+    type: ENTITIES_TYPE.NUMERIC
+  },
+  "СуммаКредита" : {
+    name: "СуммаКредита",
+    message: "Какую сумму Вы хотите взять в кредит?",
+    type: ENTITIES_TYPE.NUMERIC
+  },
+  "Машина" : {
+    name: "Машина",
+    message: "Есть ли у Вас машина?",
+    type: ENTITIES_TYPE.BOOLEAN
+  },
+  "Гражданство" : {
+    name: "Гражданство",
+    message: "Являетесь ли Вы гражданином Украины?",
+    type: ENTITIES_TYPE.BOOLEAN
+  },
+  "Возраст" : {
+    name: "Возраст",
+    message: "Каков Ваш возраст?",
+    type: ENTITIES_TYPE.NUMERIC
+  },
+};
+
 const usersCurrentEntity = {};
 const usersCurrentNumberOfQuestion = {};
 const usersAnswers = {};
-let rule = '';
+let rule = `(Гражданство == true) && (Возраст >= 21) && ((СуммаКредита <= Доход * 3 && Машина == false)
+    || (СуммаКредита <= Доход * 6 && (Машина == true) && (СемейноеПоложение == true)))`;
 
 
 bot.registerErrorHandler((err) => console.error(err));
