@@ -124,7 +124,7 @@ function adminMessageHandler(msg) {
 
     case ADMIN_COMMANDS.list_entities: 
       const message = createListOfEntities(entities).length > 0 ? createListOfEntities(entities) : 'Сущности еще не созданы';
-      bot.sendMessage(chatId, message, null, {parse_mode: 'HTML'});
+      bot.sendMessage(chatId, message, Object.values(ADMIN_COMMANDS).map((el) => [el]), {parse_mode: 'HTML'});
       return;
 
     case ADMIN_COMMANDS.create_rule:
@@ -145,7 +145,7 @@ function adminMessageHandler(msg) {
 
       usersState[chatId] = ADMIN_STATES.STATE_DELETE_ENTITY;
       bot.sendMessage(chatId, 'Выберите название сущности, которую нужно удалить',
-        Object.values(entities).map((el) => [el]));
+        Object.keys(entities).map((el) => [el]));
       return;
 
     case ADMIN_COMMANDS.help:
